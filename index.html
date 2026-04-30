@@ -342,41 +342,50 @@
 
     function generateKuponHTML(kode, jenis, lokasi) {
       return `
-        <div class="kupon-card" style="width: 170px; background: white; border-radius: 12px; overflow: hidden; border: 2px solid #2563eb; text-align: center; margin: 10px; font-family: sans-serif;">
-          <div style="background: #2563eb; color: white; padding: 6px; font-size: 10px; font-weight: bold;">KUPON QURBAN</div>
-          <div style="padding: 10px;">
-            <img src="https://quickchart.io/qr?text=${kode}&size=150" style="width: 120px;">
-            <div style="font-weight: bold; margin-top: 5px;">${kode}</div>
-            <div style="font-size: 11px; background: #eee; border-radius: 10px; padding: 2px 8px;">${jenis}</div>
-            <div style="font-size: 9px; margin-top: 5px; color: #666;">Lokasi: ${lokasi}</div>
+        <div class="kupon-card" style="width: 170px; background: white; border-radius: 12px; overflow: hidden; border: 2px solid #2563eb; text-align: center; position: relative; font-family: 'Plus Jakarta Sans', sans-serif;">
+          <div style="background: #2563eb; color: white; padding: 6px 5px; font-size: 9px; font-weight: 800; letter-spacing: 1px;">Kupon Daging Qurban</div>
+          <div style="padding: 12px 8px;">
+            <img src="https://quickchart.io/qr?text=${kode}&size=150&margin=1" style="width: 130px; height: 130px; margin-bottom: 8px; border: 1px solid #f1f5f9; padding: 5px; border-radius: 8px;">
+            <div style="font-weight: 900; font-size: 14px; color: #1e293b; margin-bottom: 2px;">${kode}</div>
+            <div style="font-size: 10px; color: #ffffff; background: #1e293b; display: inline-block; padding: 2px 12px; border-radius: 50px; margin-bottom: 6px; font-weight: 600;">${jenis}</div>
+            <div style="border-top: 1px dashed #e2e8f0; margin: 8px 5px 0 5px; padding-top: 6px;">
+               <div style="font-size: 8px; color: #64748b; font-weight: 700; text-transform: uppercase;">Lokasi Pengambilan</div>
+               <div style="font-size: 9px; color: #2563eb; font-weight: 800; line-height: 1.2;">${lokasi || '-'}</div>
+            </div>
           </div>
+          <div style="background: #f8fafc; padding: 4px; font-size: 7px; color: #94a3b8; font-weight: 600;">Scan untuk Validasi</div>
         </div>`;
     }
 
     function previewKupon(row) {
       const h = RAW_DATA.header;
-      $('#qr-preview-content').html(generateKuponHTML(row[h.indexOf('Kode_Kupon')], row[h.indexOf('Jenis_Kupon')], row[h.indexOf('Lokasi_Pengambilan')]));
+      const kIdx = h.indexOf('Kode_Kupon'), jIdx = h.indexOf('Jenis_Kupon'), lIdx = h.indexOf('Lokasi_Pengambilan');
+      $('#qr-preview-content').html(generateKuponHTML(row[kIdx], row[jIdx], row[lIdx]));
       bsModalQR.show();
     }
 
-    function printSingleKupon() { $('#print-area').html($('#qr-preview-content').html()); window.print(); }
+    function printSingleKupon() { 
+      $('#print-area').html(`<div style="display:flex; justify-content:center; padding-top:50px;">${$('#qr-preview-content').html()}</div>`); 
+      window.print(); 
+    }
 
     function preparePrint(res) {
       let htm = '<div class="print-grid">';
       const h = res.header;
-      res.values.forEach(row => { htm += generateKuponHTML(row[h.indexOf('Kode_Kupon')], row[h.indexOf('Jenis_Kupon')], row[h.indexOf('Lokasi_Pengambilan')]); });
+      const kIdx = h.indexOf('Kode_Kupon'), jIdx = h.indexOf('Jenis_Kupon'), lIdx = h.indexOf('Lokasi_Pengambilan');
+      res.values.forEach(row => { htm += generateKuponHTML(row[kIdx], row[jIdx], row[lIdx]); });
       $('#print-area').html(htm + '</div>');
     }
 
-    function exportXLSX() { const ws = XLSX.utils.aoa_to_sheet([RAW_DATA.header, ...RAW_DATA.values]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data"); XLSX.writeFile(wb, `Export.xlsx`); }
-    function exportPDF() { const { jsPDF } = window.jspdf; const doc = new jsPDF('l'); doc.autoTable({ head: [RAW_DATA.header], body: RAW_DATA.values }); doc.save(`Laporan.pdf`); }
+    function exportXLSX() { const data = [RAW_DATA.header, ...RAW_DATA.values]; const ws = XLSX.utils.aoa_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Data"); XLSX.writeFile(wb, `Export_${CUR_SHEET}.xlsx`); }
+    function exportPDF() { const { jsPDF } = window.jspdf; const doc = new jsPDF('l', 'mm', 'a4'); doc.text("Laporan " + CUR_SHEET, 14, 10); doc.autoTable({ head: [RAW_DATA.header], body: RAW_DATA.values, startY: 15, theme: 'grid', styles: {fontSize: 8} }); doc.save(`Laporan_${CUR_SHEET}.pdf`); }
 
     async function openForm(id = null, row = []) {
       CUR_ID = id; let htm = '<div class="row">';
       RAW_DATA.header.forEach((h, i) => {
         if(["No", "Timestamp", "QRCode_Kupon"].includes(h)) return;
         let val = id ? row[i] : "";
-        htm += `<div class="col-md-6 mb-3"><label class="small fw-bold">${h}</label>`;
+        htm += `<div class="col-md-6 mb-3"><label class="small fw-bold mb-1">${h}</label>`;
         if(REFS[h]) htm += `<select class="form-select" data-col="${h}">${REFS[h].map(o => `<option value="${o}" ${o==val?'selected':''}>${o}</option>`).join('')}</select>`;
         else htm += `<input type="text" class="form-control" data-col="${h}" value="${val}">`;
         htm += `</div>`;
@@ -384,31 +393,35 @@
       $('#form-body').html(htm + '</div>'); bsModal.show();
     }
 
-    function saveData() { const obj = {}; $('[data-col]').each(function() { obj[$(this).data('col')] = $(this).val(); }); call('manageData', "save", CUR_SHEET, obj, CUR_ID).then(() => { bsModal.hide(); loadCRUD(CUR_SHEET); }); }
-    function delData(id) { Swal.fire({title: 'Hapus?', showCancelButton: true}).then(r => { if(r.isConfirmed) call('manageData', "delete", CUR_SHEET, null, id).then(() => { loadCRUD(CUR_SHEET); }); }); }
+    function saveData() { const obj = {}; $('[data-col]').each(function() { obj[$(this).data('col')] = $(this).val(); }); call('manageData', "save", CUR_SHEET, obj, CUR_ID).then(() => { bsModal.hide(); loadCRUD(CUR_SHEET); loadStats(); }); }
+    function delData(id) { Swal.fire({title: 'Hapus?', icon: 'warning', showCancelButton: true}).then(r => { if(r.isConfirmed) call('manageData', "delete", CUR_SHEET, null, id).then(() => { loadCRUD(CUR_SHEET); loadStats(); }); }); }
 
     function bulkKupon() {
       Swal.fire({
         title: 'Bulk Generate',
-        html: `<input id="q-qty" type="number" class="form-control mb-2" placeholder="Jumlah">`,
+        html: `<input id="q-qty" type="number" class="form-control mb-2" placeholder="Jumlah"><select id="q-jenis" class="form-select mb-2">${REFS['Jenis_Kupon']?REFS['Jenis_Kupon'].map(x=>`<option>${x}</option>`):'<option>Umum</option>'}</select><select id="q-lok" class="form-select">${REFS['Lokasi_Pengambilan']?REFS['Lokasi_Pengambilan'].map(x=>`<option>${x}</option>`):'<option>Masjid</option>'}</select>`,
         showCancelButton: true
-      }).then(r => { if(r.isConfirmed) call('generateBulkKupon', $('#q-qty').val(), "Umum", "Masjid").then(() => loadCRUD('Data_Kupon')); });
+      }).then(r => { if(r.isConfirmed) call('generateBulkKupon', $('#q-qty').val(), $('#q-jenis').val(), $('#q-lok').val()).then(() => loadCRUD('Data_Kupon')); });
     }
 
     function loadStats() {
-      call('getDashboardData').then(s => {
-        $('#st-kelompok').text(s.kelompok); $('#st-anggota').text(s.anggota); $('#st-panitia').text(s.panitia); $('#st-hewan').text(s.hewan);
+      google.script.run.withSuccessHandler(s => {
+        $('#st-kelompok').text(s.kelompok); $('#st-anggota').text(s.anggota);
+        $('#st-panitia').text(s.panitia); $('#st-hewan').text(s.hewan);
         $('#txt-masuk').text('Rp ' + s.masukStr); $('#txt-keluar').text('Rp ' + s.keluarStr); $('#txt-saldo').text('Rp ' + s.saldo);
+        if(s.quote) $('#daily-quote').text(s.quote);
         initChart(s.masuk, s.keluar);
-      });
+      }).getDashboardData();
     }
 
     function initChart(m, k) {
-      const ctx = document.getElementById('financeChart').getContext('2d');
+      const canvas = document.getElementById('financeChart');
+      if(!canvas) return;
+      const ctx = canvas.getContext('2d');
       if(window.myChart) window.myChart.destroy();
-      window.myChart = new Chart(ctx, { type: 'bar', data: { labels: ['Masuk', 'Keluar'], datasets: [{ data: [m, k], backgroundColor: ['#10b981', '#ef4444'] }] }, options: { responsive: true, maintainAspectRatio: false } });
+      window.myChart = new Chart(ctx, { type: 'bar', data: { labels: ['Masuk', 'Keluar'], datasets: [{ data: [m, k], backgroundColor: ['#10b981', '#ef4444'], borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     }
-
+    
     function loadRefs() { call('getRefs').then(r => REFS = r); }
     function updatePass() { call('changePassword', SESSION.id, $('#new-pass').val()).then(msg => Swal.fire('Sukses', msg, 'success')); }
     function toggleSidebar() { $('#sidebar').toggleClass('mobile-show'); $('#sidebar-overlay').toggleClass('active'); }
