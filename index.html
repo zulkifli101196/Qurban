@@ -426,7 +426,7 @@
       window.myChart = new Chart(ctx, { type: 'bar', data: { labels: ['Masuk', 'Keluar'], datasets: [{ data: [m, k], backgroundColor: ['#10b981', '#ef4444'], borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     }
     
-    function loadRefs() { REFS = await call('getRefs'); }
+    async function loadRefs() { REFS = await call('getRefs'); }
     function updatePass() { call('changePassword', SESSION.id, $('#new-pass').val()).then(msg => Swal.fire('Sukses', msg, 'success')); }
     function toggleSidebar() { $('#sidebar').toggleClass('mobile-show'); $('#sidebar-overlay').toggleClass('active'); }
   </script>
