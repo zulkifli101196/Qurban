@@ -405,13 +405,17 @@
     }
 
     function loadStats() {
-      google.script.run.withSuccessHandler(s => {
-        $('#st-kelompok').text(s.kelompok); $('#st-anggota').text(s.anggota);
-        $('#st-panitia').text(s.panitia); $('#st-hewan').text(s.hewan);
-        $('#txt-masuk').text('Rp ' + s.masukStr); $('#txt-keluar').text('Rp ' + s.keluarStr); $('#txt-saldo').text('Rp ' + s.saldo);
-        if(s.quote) $('#daily-quote').text(s.quote);
+      const s = await call('getDashboardData');
+      if (s) {
+        $('#st-kelompok').text(s.kelompok);
+        $('#st-anggota').text(s.anggota);
+        $('#st-panitia').text(s.panitia);
+        $('#st-hewan').text(s.hewan);
+        $('#txt-masuk').text('Rp ' + s.masukStr);
+        $('#txt-keluar').text('Rp ' + s.keluarStr);
+        $('#txt-saldo').text('Rp ' + s.saldo);
         initChart(s.masuk, s.keluar);
-      }).getDashboardData();
+      }
     }
 
     function initChart(m, k) {
@@ -422,7 +426,7 @@
       window.myChart = new Chart(ctx, { type: 'bar', data: { labels: ['Masuk', 'Keluar'], datasets: [{ data: [m, k], backgroundColor: ['#10b981', '#ef4444'], borderRadius: 10 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     }
     
-    function loadRefs() { google.script.run.withSuccessHandler(r => REFS = r).getRefs(); }
+    function loadRefs() { REFS = await call('getRefs'); }
     function updatePass() { call('changePassword', SESSION.id, $('#new-pass').val()).then(msg => Swal.fire('Sukses', msg, 'success')); }
     function toggleSidebar() { $('#sidebar').toggleClass('mobile-show'); $('#sidebar-overlay').toggleClass('active'); }
   </script>
